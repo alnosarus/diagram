@@ -9,16 +9,50 @@ import express from "express";
 import cors from "cors";
 import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createMcpServer } from "./routes/mcp.js";
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 
 app.use(cors());
+
+// ---------- MCP Streamable HTTP endpoint ----------
+// Must be mounted BEFORE express.json() so the SDK can read the raw body
+app.post("/mcp", express.json(), async (req, res) => {
+  const mcpServer = createMcpServer();
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined, // stateless
+  });
+  res.on("close", () => { transport.close(); });
+  await mcpServer.connect(transport);
+  await transport.handleRequest(req, res, req.body);
+});
+
+
+// Handle GET/DELETE for MCP protocol (return 405 for stateless)
+app.get("/mcp", (_req, res) => {
+  res.status(405).json({ error: "Method not allowed. Use POST for MCP requests." });
+});
+app.delete("/mcp", (_req, res) => {
+  res.status(405).json({ error: "Method not allowed. Sessions are not supported." });
+});
+
+// JSON body parser for API routes
 app.use(express.json({ limit: "1mb" }));
 
 // Lazy-import routes AFTER env is loaded
 const { default: parseRouter } = await import("./routes/parse.js");
 app.use("/api", parseRouter);
+
+// ---------- Static file serving (production) ----------
+const clientDist = path.resolve(__dirname, "../client/dist");
+app.use(express.static(clientDist));
+
+// SPA catch-all: serve index.html for any non-API route
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(clientDist, "index.html"));
+});
 
 // Create HTTP server for both Express and WebSocket
 const server = http.createServer(app);
