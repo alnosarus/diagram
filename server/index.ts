@@ -38,6 +38,16 @@ app.delete("/mcp", (_req, res) => {
   res.status(405).json({ error: "Method not allowed. Sessions are not supported." });
 });
 
+// ---------- MCP Resource Metadata (required by ChatGPT) ----------
+app.get("/.well-known/oauth-protected-resource", (_req, res) => {
+  res.json({
+    resource: `https://${_req.headers.host}`,
+    mcp_server_url: `https://${_req.headers.host}/mcp`,
+    bearer_methods_supported: [],
+    resource_signing_alg_values_supported: [],
+  });
+});
+
 // JSON body parser for API routes
 app.use(express.json({ limit: "1mb" }));
 
