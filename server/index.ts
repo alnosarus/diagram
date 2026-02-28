@@ -45,13 +45,24 @@ app.use(express.json({ limit: "1mb" }));
 const { default: parseRouter } = await import("./routes/parse.js");
 app.use("/api", parseRouter);
 
+// ---------- Health check ----------
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 // ---------- Static file serving (production) ----------
 const clientDist = path.resolve(__dirname, "../client/dist");
+console.log("[Static] Serving from:", clientDist);
 app.use(express.static(clientDist));
 
 // SPA catch-all: serve index.html for any non-API route
 app.get("*", (_req, res) => {
-  res.sendFile(path.join(clientDist, "index.html"));
+  const indexPath = path.join(clientDist, "index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).json({ error: "Client not built", path: indexPath });
+    }
+  });
 });
 
 // Create HTTP server for both Express and WebSocket
