@@ -4,6 +4,8 @@ Generate interactive 3D math and physics diagrams using voice. Speak a descripti
 
 [Live Demo](https://diagram-production-df57.up.railway.app)
 
+![Helmholtz coil with force diagrams, hand tracking, and LaTeX equations](screenshot.png)
+
 ## How It Works
 
 1. **Speak** a description ("draw a free body diagram with gravity and normal force")
